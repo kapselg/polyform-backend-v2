@@ -18,7 +18,8 @@
     "express": "^4.18.1",
     "nanoid": "^3.3.4",
     "sequelize": "^6.21.2",
-    "sqlite3": "^5.0.8"
+    "sqlite3": "^5.0.8",
+    "zod": "^3.19.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.12"

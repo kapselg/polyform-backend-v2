@@ -19,6 +19,7 @@ export function connect() {
     question: Question,
     incident: Incident
   };
+  
   //init models
   models.form = initForm(sequelize);
   models.user = initUser(sequelize);

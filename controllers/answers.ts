@@ -1,17 +1,20 @@
 import { sq } from "../app";
 import { Answer } from "../db/models/answer.model ";
 import { GeneratedID, LONG_ID } from "../db/uid/generate";
+import QuestionModel from "../shared/question.model";
 import { Results, Submission } from "../shared/results.model";
+import { z } from 'zod';
 
 export async function getAnswersByCode(accessCode: string): Promise<Results | string> {
+  
   //get form id by access code
-
   const formInfo = await sq.models.form
     .findOne({
       where: {
         accessCode: accessCode,
       },
     })
+    //pipe to null if there are no results
     .then((result) => (result ? { id: result.get().id, name: result.get().options.name } : null))
     .catch((e) => null);
 
@@ -21,13 +24,21 @@ export async function getAnswersByCode(accessCode: string): Promise<Results | st
 
   //get all questions
 
-  const questions = await sq.models.question
+  const questions: QuestionModel[] = await sq.models.question
     .findAll({
       where: { form: formInfo.id },
     })
     .then((results) =>
+    //map results to QuestionModel array
       results.map((result) => {
-        return result.getDataValue("query");
+        const data = result.get()
+        return {
+          type: data.type,
+          query: data.query,
+          id: data.id,
+          options: data.options,
+          answerType: data.type
+        }
       })
     );
 
@@ -47,6 +58,7 @@ export async function getAnswersByCode(accessCode: string): Promise<Results | st
       })
     );
 
+  //pack results
   const response: Results = {
     formName: formInfo.name,
     questions: questions,
@@ -56,9 +68,13 @@ export async function getAnswersByCode(accessCode: string): Promise<Results | st
   //pack em' up and return
   return response;
 }
-
+/**
+ * 
+ * @param formId id of the form
+ * @param submission answers
+ * @returns 
+ */
 export async function submitAnswersById(formId: string, submission: Submission): Promise<string | Submission> {
-  //TODO: add answer validation
   //check if form exists
   const form = await sq.models.form.findOne({
     where: {
@@ -67,6 +83,24 @@ export async function submitAnswersById(formId: string, submission: Submission):
   });
 
   if (!form) return "No such form";
+  
+  //get questions by formid
+  const questions = await sq.models.question.findAll({
+    where: {
+      form: formId,
+    }
+  });
+
+  //sort by index
+  questions.sort((a, b)=>{
+    if(a.getDataValue('options').index < b.getDataValue('options').index){
+      return 1;
+    }
+    return -1;
+  })
+
+  //validate here
+
 
   //insert submissions
   const t = await sq.sequelize.transaction();
